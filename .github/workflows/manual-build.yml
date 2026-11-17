@@ -91,7 +91,7 @@ jobs:
           releaseBody: 'Manual build for ${{ github.event.inputs.tag }}'
           releaseDraft: false
           prerelease: false
-          includeUpdaterJson: true
+          includeUpdaterJson: false
           args: ${{ matrix.args }}
 
       - name: Upload frontend sourcemaps to GlitchTip
