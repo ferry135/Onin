@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: ''
+      version:
+        description: '覆盖构建版本号（需高于上游最新版本才不会被提示更新；留空则用仓库版本）'
+        required: false
+        type: string
+        default: '1.33.0'
       retention_days:
         description: '构建产物保留天数'
         required: false
@@ -66,6 +71,25 @@ jobs:
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Override app version
+        if: inputs.version != ''
+        shell: bash
+        env:
+          TARGET_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$TARGET_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version: $TARGET_VERSION (expected e.g. 1.33.0)" >&2
+            exit 1
+          fi
+          sed -i -E "0,/\"version\": \"[^\"]*\"/s//\"version\": \"$TARGET_VERSION\"/" packages/app/src-tauri/tauri.conf.json
+          sed -i -E "0,/\"version\": \"[^\"]*\"/s//\"version\": \"$TARGET_VERSION\"/" packages/app/package.json
+          sed -i -E "0,/^version = \"[^\"]*\"/s//version = \"$TARGET_VERSION\"/" packages/app/src-tauri/Cargo.toml
+          echo "--- patched versions ---"
+          grep -n '"version"' packages/app/src-tauri/tauri.conf.json | head -1
+          grep -n '"version"' packages/app/package.json | head -1
+          grep -n '^version' packages/app/src-tauri/Cargo.toml | head -1
 
       - name: Disable updater artifacts (fork has no signing key)
         shell: bash
